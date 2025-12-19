@@ -75,8 +75,9 @@ export const generateImage = async (prompt: string): Promise<string | null> => {
       throw new Error('API_KEY is not configured.');
     }
     
+    // Using aimlapi.com's image generation endpoint
     const res = await fetch(
-      `https://api.aimlapi.com/images/generations`,
+      `https://api.aimlapi.com/v1/images/generations`,
       {
         method: 'POST',
         headers: {
@@ -88,27 +89,31 @@ export const generateImage = async (prompt: string): Promise<string | null> => {
           prompt: prompt,
           n: 1,
           size: '1024x1024',
+          quality: 'standard',
+          style: 'natural',
         }),
       }
     );
 
     if (!res.ok) {
-      const error = await res.json();
-      throw new Error(`API error: ${error.error?.message || res.statusText}`);
+      const errorText = await res.text();
+      console.error('API Response:', errorText);
+      throw new Error(`API error: ${res.statusText} - ${errorText}`);
     }
 
     const data = await res.json();
     const imageUrl = data.data?.[0]?.url;
     
     if (!imageUrl) {
-      throw new Error('No image URL received from API');
+      console.error('Response data:', data);
+      throw new Error('No image URL in response');
     }
     
     console.log('Image generated successfully:', imageUrl);
     return imageUrl;
   } catch (error) {
     console.error('Image generation error:', error);
-    return null;
+    throw error;
   }
 };
 

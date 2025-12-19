@@ -11,18 +11,26 @@ const ImageGenView: React.FC<ImageGenViewProps> = ({ onInteraction }) => {
   const [prompt, setPrompt] = useState('');
   const [result, setResult] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isLoading) return;
     
     setIsLoading(true);
     setResult(null);
+    setError(null);
 
     try {
       const imageUrl = await generateImage(prompt);
-      setResult(imageUrl);
-      onInteraction(`Generated: ${prompt.substring(0, 15)}...`);
+      if (!imageUrl) {
+        setError('Failed to generate image. Please try again.');
+      } else {
+        setResult(imageUrl);
+        onInteraction(`Generated: ${prompt.substring(0, 15)}...`);
+      }
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred';
+      setError(errorMessage);
       console.error(error);
     } finally {
       setIsLoading(false);
@@ -41,6 +49,16 @@ const ImageGenView: React.FC<ImageGenViewProps> = ({ onInteraction }) => {
           <div className="flex flex-col items-center gap-4">
             <Loader2 className="animate-spin text-indigo-500" size={40} />
             <p className="text-sm font-medium animate-pulse">Designing your masterpiece...</p>
+          </div>
+        ) : error ? (
+          <div className="flex flex-col items-center gap-4 text-red-500">
+            <p className="text-sm text-center px-12 font-medium">{error}</p>
+            <button 
+              onClick={handleGenerate}
+              className="px-4 py-2 rounded-lg bg-indigo-500 text-white hover:bg-indigo-600 transition-colors"
+            >
+              Try Again
+            </button>
           </div>
         ) : result ? (
           <>
