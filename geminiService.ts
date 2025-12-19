@@ -1,7 +1,7 @@
 // Get API key from environment
 const getAPIKey = () => {
-  // Using aimlapi.com key
-  const key = '73d53e839d7e4ec59b1d5167df30aaa1';
+  // Using OpenRouter API key
+  const key = 'sk-or-v1-31c...859';
   if (!key) {
     console.error('API_KEY is not set');
   }
@@ -19,7 +19,7 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
       throw new Error('API_KEY is not configured.');
     }
 
-    // Build message array for aimlapi.com
+    // Build message array for OpenRouter
     const messages = history.length > 0
       ? [...history.map(h => ({
           role: h.role === 'model' ? 'assistant' : 'user',
@@ -31,7 +31,7 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
       : [{ role: 'user', content: prompt }];
 
     const res = await fetch(
-      `https://api.aimlapi.com/chat/completions`,
+      `https://openrouter.ai/api/v1/chat/completions`,
       {
         method: 'POST',
         headers: {
