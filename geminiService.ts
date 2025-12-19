@@ -36,11 +36,7 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           contents,
-          systemInstruction: {
-            parts: [{
-              text: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
-            }],
-          },
+          system_instruction: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
         }),
       }
     );
