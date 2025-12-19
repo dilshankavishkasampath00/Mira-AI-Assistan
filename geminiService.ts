@@ -76,7 +76,7 @@ export const generateImage = async (prompt: string): Promise<string | null> => {
     }
     
     const res = await fetch(
-      `https://api.aimlapi.com/chat/completions`,
+      `https://api.aimlapi.com/images/generations`,
       {
         method: 'POST',
         headers: {
@@ -84,11 +84,10 @@ export const generateImage = async (prompt: string): Promise<string | null> => {
           'Authorization': `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4-turbo',
-          messages: [{
-            role: 'user',
-            content: `Generate an image: ${prompt}`,
-          }],
+          model: 'dall-e-3',
+          prompt: prompt,
+          n: 1,
+          size: '1024x1024',
         }),
       }
     );
@@ -99,12 +98,14 @@ export const generateImage = async (prompt: string): Promise<string | null> => {
     }
 
     const data = await res.json();
-    const text = data.choices?.[0]?.message?.content;
+    const imageUrl = data.data?.[0]?.url;
     
-    // For actual image generation, you would need to use a dedicated image model
-    // or handle the response appropriately
-    console.log('Image generation result:', text);
-    return null;
+    if (!imageUrl) {
+      throw new Error('No image URL received from API');
+    }
+    
+    console.log('Image generated successfully:', imageUrl);
+    return imageUrl;
   } catch (error) {
     console.error('Image generation error:', error);
     return null;
