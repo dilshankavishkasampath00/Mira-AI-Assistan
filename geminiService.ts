@@ -1,8 +1,4 @@
-
-// @ts-ignore
-import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@^0.16.0";
-
-// Get API key from environment or window
+// Get API key from environment
 const getAPIKey = () => {
   const key = import.meta.env.VITE_GEMINI_API_KEY;
   if (!key) {
@@ -11,63 +7,51 @@ const getAPIKey = () => {
   return key || '';
 };
 
-const getAIClient = () => {
-  const apiKey = getAPIKey();
-  if (!apiKey) {
-    throw new Error('VITE_GEMINI_API_KEY is not configured. Please set it in your environment variables.');
-  }
-  try {
-    return new GoogleGenerativeAI({ apiKey });
-  } catch (error) {
-    console.error('Failed to initialize GoogleGenerativeAI:', error);
-    throw error;
-  }
-};
-
 export const chatWithGemini = async (prompt: string, history: { role: 'user' | 'model', parts: { text: string }[] }[] = []) => {
   try {
     if (!prompt.trim()) {
       throw new Error('Prompt cannot be empty');
     }
 
-    const client = getAIClient();
-    const model = client.getGenerativeModel({
-      model: 'gemini-2.0-flash',
-      systemInstruction: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
-    });
-
-    // Filter and format history properly - remove any leading model messages
-    // Gemini API requires first message to be from user
-    let formattedHistory = history
-      .filter(h => h && h.role && h.parts)
-      .map(h => ({
-        role: h.role === 'model' ? 'model' : 'user',
-        parts: Array.isArray(h.parts) ? h.parts : [{ text: String(h.parts) }],
-      }));
-
-    // If history is empty or starts with model, we don't use history for this turn
-    // This ensures the first message is always from user
-    if (formattedHistory.length === 0 || formattedHistory[0].role === 'model') {
-      // No valid history, send message without history
-      const result = await model.generateContent(prompt);
-      const response = await result.response;
-      const text = response.text();
-      
-      if (!text) {
-        throw new Error('No response text received from Gemini');
-      }
-      
-      return text;
+    const API_KEY = getAPIKey();
+    if (!API_KEY) {
+      throw new Error('VITE_GEMINI_API_KEY is not configured. Please set it in your environment variables.');
     }
 
-    // Valid history exists with user as first message
-    const chat = model.startChat({
-      history: formattedHistory,
-    });
+    // Format history for API
+    const contents = history.length > 0 
+      ? [...history.map(h => ({
+          role: h.role,
+          parts: h.parts,
+        })), {
+          role: 'user',
+          parts: [{ text: prompt }],
+        }]
+      : [{ role: 'user', parts: [{ text: prompt }] }];
 
-    const result = await chat.sendMessage(prompt);
-    const response = await result.response;
-    const text = response.text();
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents,
+          systemInstruction: {
+            parts: [{
+              text: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
+            }],
+          },
+        }),
+      }
+    );
+
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(`API error: ${error.error?.message || res.statusText}`);
+    }
+
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     if (!text) {
       throw new Error('No response text received from Gemini');
@@ -76,7 +60,6 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
     return text;
   } catch (error) {
     console.error('Gemini API error:', error);
-    // Return a helpful error message to the user
     if (error instanceof Error) {
       throw new Error(`Gemini error: ${error.message}`);
     }
@@ -86,17 +69,31 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
 
 export const generateImage = async (prompt: string): Promise<string | null> => {
   try {
-    const client = getAIClient();
-    const model = client.getGenerativeModel({ model: 'gemini-2.0-flash' });
+    const API_KEY = getAPIKey();
+    if (!API_KEY) {
+      throw new Error('VITE_GEMINI_API_KEY is not configured.');
+    }
     
-    const result = await model.generateContent({
-      contents: [{
-        parts: [{ text: `Generate an image: ${prompt}` }],
-      }],
-    });
+    const res = await fetch(
+      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          contents: [{
+            parts: [{ text: `Generate an image: ${prompt}` }],
+          }],
+        }),
+      }
+    );
 
-    const response = await result.response;
-    const text = response.text();
+    if (!res.ok) {
+      const error = await res.json();
+      throw new Error(`API error: ${error.error?.message || res.statusText}`);
+    }
+
+    const data = await res.json();
+    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
     
     // For actual image generation, you would need to use a dedicated image model
     // or handle the response appropriately
