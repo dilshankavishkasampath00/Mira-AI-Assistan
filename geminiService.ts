@@ -1,7 +1,7 @@
 // Get API key from environment
 const getAPIKey = () => {
-  // Using OpenRouter API key
-  const key = 'sk-or-v1-31c...859';
+  // Using DeepSeek API key
+  const key = 'sk-7683e2155c8d4cffa6afbb54cf90c423';
   if (!key) {
     console.error('API_KEY is not set');
   }
@@ -19,7 +19,7 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
       throw new Error('API_KEY is not configured.');
     }
 
-    // Build message array for OpenRouter
+    // Build message array for DeepSeek
     const messages = history.length > 0
       ? [...history.map(h => ({
           role: h.role === 'model' ? 'assistant' : 'user',
@@ -31,7 +31,7 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
       : [{ role: 'user', content: prompt }];
 
     const res = await fetch(
-      `https://openrouter.ai/api/v1/chat/completions`,
+      `https://api.deepseek.com/chat/completions`,
       {
         method: 'POST',
         headers: {
@@ -39,7 +39,7 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
           'Authorization': `Bearer ${API_KEY}`,
         },
         body: JSON.stringify({
-          model: 'gpt-4-turbo',
+          model: 'deepseek-chat',
           messages,
           system: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
         }),
