@@ -1,8 +1,9 @@
 // Get API key from environment
 const getAPIKey = () => {
-  const key = import.meta.env.VITE_GEMINI_API_KEY;
+  // Using aimlapi.com key
+  const key = '73d53e839d7e4ec59b1d5167df30aaa1';
   if (!key) {
-    console.error('VITE_GEMINI_API_KEY is not set');
+    console.error('API_KEY is not set');
   }
   return key || '';
 };
@@ -15,28 +16,32 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
 
     const API_KEY = getAPIKey();
     if (!API_KEY) {
-      throw new Error('VITE_GEMINI_API_KEY is not configured. Please set it in your environment variables.');
+      throw new Error('API_KEY is not configured.');
     }
 
-    // Format history for API
-    const contents = history.length > 0 
+    // Build message array for aimlapi.com
+    const messages = history.length > 0
       ? [...history.map(h => ({
-          role: h.role,
-          parts: h.parts,
+          role: h.role === 'model' ? 'assistant' : 'user',
+          content: h.parts.map(p => p.text).join(''),
         })), {
           role: 'user',
-          parts: [{ text: prompt }],
+          content: prompt,
         }]
-      : [{ role: 'user', parts: [{ text: prompt }] }];
+      : [{ role: 'user', content: prompt }];
 
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+      `https://api.aimlapi.com/chat/completions`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`,
+        },
         body: JSON.stringify({
-          contents,
-          system_instruction: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
+          model: 'gpt-4-turbo',
+          messages,
+          system: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
         }),
       }
     );
@@ -47,17 +52,17 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
     }
 
     const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = data.choices?.[0]?.message?.content;
     
     if (!text) {
-      throw new Error('No response text received from Gemini');
+      throw new Error('No response text received from API');
     }
     
     return text;
   } catch (error) {
-    console.error('Gemini API error:', error);
+    console.error('API error:', error);
     if (error instanceof Error) {
-      throw new Error(`Gemini error: ${error.message}`);
+      throw new Error(`API error: ${error.message}`);
     }
     throw error;
   }
@@ -67,17 +72,22 @@ export const generateImage = async (prompt: string): Promise<string | null> => {
   try {
     const API_KEY = getAPIKey();
     if (!API_KEY) {
-      throw new Error('VITE_GEMINI_API_KEY is not configured.');
+      throw new Error('API_KEY is not configured.');
     }
     
     const res = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash:generateContent?key=${API_KEY}`,
+      `https://api.aimlapi.com/chat/completions`,
       {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${API_KEY}`,
+        },
         body: JSON.stringify({
-          contents: [{
-            parts: [{ text: `Generate an image: ${prompt}` }],
+          model: 'gpt-4-turbo',
+          messages: [{
+            role: 'user',
+            content: `Generate an image: ${prompt}`,
           }],
         }),
       }
@@ -89,7 +99,7 @@ export const generateImage = async (prompt: string): Promise<string | null> => {
     }
 
     const data = await res.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+    const text = data.choices?.[0]?.message?.content;
     
     // For actual image generation, you would need to use a dedicated image model
     // or handle the response appropriately
