@@ -30,6 +30,14 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
         }]
       : [{ role: 'user', content: prompt }];
 
+    // Add system prompt to messages
+    const systemMessage = {
+      role: 'user' as const,
+      content: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
+    };
+    
+    const allMessages = [systemMessage, ...messages];
+
     const res = await fetch(
       `https://api.deepseek.com/chat/completions`,
       {
@@ -40,8 +48,9 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
         },
         body: JSON.stringify({
           model: 'deepseek-chat',
-          messages,
-          system: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
+          messages: allMessages,
+          temperature: 0.7,
+          max_tokens: 1000,
         }),
       }
     );
