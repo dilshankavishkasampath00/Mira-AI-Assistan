@@ -1,7 +1,6 @@
 // Get API key from environment
 const getAPIKey = () => {
-  // Using DeepSeek API key
-  const key = 'sk-7683e2155c8d4cffa6afbb54cf90c423';
+  const key = import.meta.env.VITE_DEEPSEEK_API_KEY || 'sk-7683e2155c8d4cffa6afbb54cf90c423';
   if (!key) {
     console.error('API_KEY is not set');
   }
@@ -20,23 +19,20 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
     }
 
     // Build message array for DeepSeek
-    const messages = history.length > 0
-      ? [...history.map(h => ({
-          role: h.role === 'model' ? 'assistant' : 'user',
-          content: h.parts.map(p => p.text).join(''),
-        })), {
-          role: 'user',
-          content: prompt,
-        }]
-      : [{ role: 'user', content: prompt }];
-
-    // Add system prompt to messages
-    const systemMessage = {
-      role: 'user' as const,
-      content: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
-    };
-    
-    const allMessages = [systemMessage, ...messages];
+    const messages = [
+      {
+        role: 'system',
+        content: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise."
+      },
+      ...history.map(h => ({
+        role: h.role === 'model' ? 'assistant' : 'user' as const,
+        content: h.parts.map(p => p.text).join(''),
+      })),
+      {
+        role: 'user' as const,
+        content: prompt,
+      }
+    ];
 
     const res = await fetch(
       `https://api.deepseek.com/chat/completions`,
@@ -48,9 +44,9 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
         },
         body: JSON.stringify({
           model: 'deepseek-chat',
-          messages: allMessages,
+          messages: messages,
           temperature: 0.7,
-          max_tokens: 1000,
+          max_tokens: 2000,
         }),
       }
     );
