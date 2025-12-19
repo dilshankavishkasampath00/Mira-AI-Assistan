@@ -2,36 +2,65 @@
 // @ts-ignore
 import { GoogleGenerativeAI } from "https://esm.sh/@google/generative-ai@^0.16.0";
 
-// Access API key from Vite's import.meta.env
-const API_KEY = import.meta.env.VITE_GEMINI_API_KEY || '';
+// Get API key from environment or window
+const getAPIKey = () => {
+  const key = import.meta.env.VITE_GEMINI_API_KEY;
+  if (!key) {
+    console.error('VITE_GEMINI_API_KEY is not set');
+  }
+  return key || '';
+};
 
 const getAIClient = () => {
-  if (!API_KEY) {
-    throw new Error('VITE_GEMINI_API_KEY is not set in environment variables');
+  const apiKey = getAPIKey();
+  if (!apiKey) {
+    throw new Error('VITE_GEMINI_API_KEY is not configured. Please set it in your environment variables.');
   }
-  return new GoogleGenerativeAI({ apiKey: API_KEY });
+  try {
+    return new GoogleGenerativeAI({ apiKey });
+  } catch (error) {
+    console.error('Failed to initialize GoogleGenerativeAI:', error);
+    throw error;
+  }
 };
 
 export const chatWithGemini = async (prompt: string, history: { role: 'user' | 'model', parts: { text: string }[] }[] = []) => {
   try {
+    if (!prompt.trim()) {
+      throw new Error('Prompt cannot be empty');
+    }
+
     const client = getAIClient();
     const model = client.getGenerativeModel({
       model: 'gemini-2.0-flash',
       systemInstruction: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
     });
 
+    // Format history properly
+    const formattedHistory = history.map(h => ({
+      role: h.role === 'model' ? 'model' : 'user',
+      parts: Array.isArray(h.parts) ? h.parts : [{ text: String(h.parts) }],
+    }));
+
     const chat = model.startChat({
-      history: history.map(h => ({
-        role: h.role,
-        parts: h.parts.map(p => ({ text: p.text })),
-      })),
+      history: formattedHistory,
     });
 
     const result = await chat.sendMessage(prompt);
     const response = await result.response;
-    return response.text();
+    const text = response.text();
+    
+    if (!text) {
+      throw new Error('No response text received from Gemini');
+    }
+    
+    return text;
   } catch (error) {
     console.error('Gemini API error:', error);
+    // Return a helpful error message to the user
+    if (error instanceof Error) {
+      throw new Error(`Gemini error: ${error.message}`);
+    }
     throw error;
   }
 };

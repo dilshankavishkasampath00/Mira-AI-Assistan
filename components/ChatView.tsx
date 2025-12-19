@@ -55,7 +55,17 @@ const ChatView: React.FC<ChatViewProps> = ({ onInteraction }) => {
       setMessages(prev => [...prev, aiMessage]);
       onInteraction(input.length > 20 ? input.substring(0, 20) + '...' : input);
     } catch (error) {
-      console.error(error);
+      const errorMessage = error instanceof Error ? error.message : 'An error occurred while processing your message.';
+      console.error('Chat error:', error);
+      
+      const errorAiMessage: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        role: 'model',
+        text: `Sorry, I encountered an error: ${errorMessage}`,
+        timestamp: Date.now(),
+      };
+      
+      setMessages(prev => [...prev, errorAiMessage]);
     } finally {
       setIsLoading(false);
     }
