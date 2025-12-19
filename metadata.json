@@ -1,0 +1,8 @@
+{
+  "name": "Mira AI Assistant",
+  "description": "A premium AI personal assistant inspired by the Mira concept, featuring chat, image generation, and real-time voice interaction powered by Gemini.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
