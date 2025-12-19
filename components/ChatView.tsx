@@ -40,10 +40,13 @@ const ChatView: React.FC<ChatViewProps> = ({ onInteraction }) => {
     setIsLoading(true);
 
     try {
-      const response = await chatWithGemini(input, messages.map(m => ({
+      // Filter out the initial model greeting message from history
+      const chatHistory = messages.filter(m => m.id !== '1').map(m => ({
         role: m.role,
         parts: [{ text: m.text }]
-      })));
+      }));
+      
+      const response = await chatWithGemini(input, chatHistory);
       
       const aiMessage: ChatMessage = {
         id: (Date.now() + 1).toString(),

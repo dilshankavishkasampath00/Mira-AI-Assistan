@@ -36,12 +36,31 @@ export const chatWithGemini = async (prompt: string, history: { role: 'user' | '
       systemInstruction: "You are Mira, a helpful, friendly, and sophisticated AI personal assistant. Your tone is elegant and concise.",
     });
 
-    // Format history properly
-    const formattedHistory = history.map(h => ({
-      role: h.role === 'model' ? 'model' : 'user',
-      parts: Array.isArray(h.parts) ? h.parts : [{ text: String(h.parts) }],
-    }));
+    // Filter and format history properly - remove any leading model messages
+    // Gemini API requires first message to be from user
+    let formattedHistory = history
+      .filter(h => h && h.role && h.parts)
+      .map(h => ({
+        role: h.role === 'model' ? 'model' : 'user',
+        parts: Array.isArray(h.parts) ? h.parts : [{ text: String(h.parts) }],
+      }));
 
+    // If history is empty or starts with model, we don't use history for this turn
+    // This ensures the first message is always from user
+    if (formattedHistory.length === 0 || formattedHistory[0].role === 'model') {
+      // No valid history, send message without history
+      const result = await model.generateContent(prompt);
+      const response = await result.response;
+      const text = response.text();
+      
+      if (!text) {
+        throw new Error('No response text received from Gemini');
+      }
+      
+      return text;
+    }
+
+    // Valid history exists with user as first message
     const chat = model.startChat({
       history: formattedHistory,
     });
